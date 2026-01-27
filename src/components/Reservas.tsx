@@ -19,6 +19,7 @@ interface LocationState {
 
 // ================== CONSTANTS ==================
 const HORARIOS_DISPONIVEIS = [
+  "07:00",
   "08:00",
   "09:00",
   "10:00",
@@ -28,6 +29,8 @@ const HORARIOS_DISPONIVEIS = [
   "16:00",
   "17:00",
   "18:00",
+  "19:00",
+  "20:00",
 ];
 
 const STORAGE_KEY = "@tenisplay_agendamentos";
@@ -69,7 +72,8 @@ export function Reservas() {
       const filtrados = parsed.filter((a) => a.cidade === cidade);
 
       setAgendamentos(filtrados);
-    } catch {
+    } catch (error) {
+      console.error("Erro ao carregar agendamentos:", error);
       setAgendamentos([]);
     }
   }, [cidade]);
@@ -84,7 +88,9 @@ export function Reservas() {
       const atualizado = [...outros, ...agendamentos];
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(atualizado));
-    } catch {}
+    } catch (error) {
+      console.error("Erro ao salvar agendamentos:", error);
+    }
   }, [agendamentos, cidade]);
 
   const hoje = useMemo(() => {
@@ -115,31 +121,42 @@ export function Reservas() {
 
   // ================== CADASTRAR ==================
   const cadastrarAgendamento = () => {
-    if (!cliente.trim() || !horario) {
-      alert("Informe o nome do cliente e o horário.");
-      return;
+    try {
+      if (!cliente.trim() || !horario) {
+        alert("Informe o nome do cliente e o horário.");
+        return;
+      }
+
+      if (horariosOcupados.includes(horario)) {
+        alert("Esse horário já está reservado.");
+        return;
+      }
+
+      const novo: Agendamento = {
+        id: Date.now(),
+        data: dataFormatada,
+        horario,
+        cliente,
+        cidade: cidade || "",
+      };
+
+      setAgendamentos((prev) => [...prev, novo]);
+      setCliente("");
+      setHorario("");
+    } catch (error) {
+      console.error("Erro ao cadastrar agendamento:", error);
+      alert("Não foi possível cadastrar a reserva. Tente novamente.");
     }
-
-    if (horariosOcupados.includes(horario)) {
-      alert("Esse horário já está reservado.");
-      return;
-    }
-
-    const novo: Agendamento = {
-      id: Date.now(),
-      data: dataFormatada,
-      horario,
-      cliente,
-      cidade: cidade || "",
-    };
-
-    setAgendamentos((prev) => [...prev, novo]);
-    setCliente("");
-    setHorario("");
   };
 
+  // ================== EXCLUIR ==================
   const excluirAgendamento = (id: number) => {
-    setAgendamentos((prev) => prev.filter((a) => a.id !== id));
+    try {
+      setAgendamentos((prev) => prev.filter((a) => a.id !== id));
+    } catch (error) {
+      console.error("Erro ao excluir agendamento:", error);
+      alert("Não foi possível excluir a reserva.");
+    }
   };
 
   return (
@@ -180,7 +197,7 @@ export function Reservas() {
       <section className="form-agendamento">
         <input
           type="text"
-          placeholder="Nome do cliente"
+          placeholder="preencha seu nome"
           value={cliente}
           onChange={(e) => setCliente(e.target.value)}
           className="input-cliente"

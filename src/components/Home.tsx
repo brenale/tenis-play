@@ -44,7 +44,7 @@ export function Home() {
       </div>
 
       <footer className="home-footer">
-        © 2026 - TenisPlay | Sistema de Reservas
+        © 2026 - BrenaleTenisPlay | Sistema de Reservas
       </footer>
     </div>
   );
