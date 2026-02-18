@@ -1,10 +1,15 @@
+// Importa estilos CSS
 import "../styles/Reservas.css";
+// Importa hooks do React para estado, efeitos e memoização
 import { useEffect, useMemo, useState } from "react";
+// Importa funções de navegação e acesso ao estado da rota
 import { useLocation, useNavigate } from "react-router-dom";
+// Importa componente de calendário
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 
 // ================== TYPES ==================
+// Interface para armazenar dados de cada agendamento/reserva
 interface Agendamento {
   id: number;
   data: string;
@@ -17,6 +22,7 @@ interface LocationState {
   cidade?: string;
 }
 
+// Interface para dados de clima da API OpenWeather
 interface DadosClima {
   temperatura: number;
   descricao: string;
@@ -28,6 +34,7 @@ interface DadosClima {
 }
 
 // ================== CONSTANTS ==================
+// Lista de horários disponíveis para reserva
 const HORARIOS_DISPONIVEIS: string[] = [
   "07:00",
   "08:00",
@@ -43,28 +50,24 @@ const HORARIOS_DISPONIVEIS: string[] = [
   "20:00",
 ];
 
+// Chave para armazenar agendamentos no localStorage
 const STORAGE_KEY = "@tenisplay_agendamentos";
+// Chave de API da OpenWeather para obter dados de clima
 const OPENWEATHER_API_KEY = "f473b08efcfe780ec11c9da7abc5fff4";
 
 // ================== UTILS ==================
-/**
- * Normaliza a data para formato ISO yyyy-mm-dd
- */
+// Converte uma data para formato ISO (yyyy-mm-dd) para comparações
 const formatDate = (date: Date): string => {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
   return d.toISOString().split("T")[0];
 };
 
-/**
- * Verifica se duas datas são o mesmo dia
- */
+// Compara se duas datas representam o mesmo dia
 const isSameDay = (a: Date, b: Date): boolean =>
   a.toDateString() === b.toDateString();
 
-/**
- * Busca clima atual da OpenWeather API
- */
+// Obtém dados de clima atual (hoje) da API OpenWeather
 const buscarClimaAtual = async (cidade: string): Promise<DadosClima | null> => {
   try {
     const response = await fetch(
@@ -93,9 +96,7 @@ const buscarClimaAtual = async (cidade: string): Promise<DadosClima | null> => {
   }
 };
 
-/**
- * Busca dados de clima da OpenWeather API
- */
+// Busca dados de clima para uma data específica (hoje ou futuro)
 const buscarClima = async (cidade: string, data: string): Promise<DadosClima | null> => {
   try {
     // Se for hoje, usa a API de weather atual
@@ -150,25 +151,37 @@ const buscarClima = async (cidade: string, data: string): Promise<DadosClima | n
 };
 
 // ================== COMPONENT ==================
+// Componente principal da página de reservas
 export function Reservas() {
+  // Hook para acessar o estado passado pela rota (cidade)
   const location = useLocation();
+  // Hook para navegação entre páginas
   const navigate = useNavigate();
 
+  // Extrai a cidade do estado passado pela rota
   const { cidade } = (location.state as LocationState) || {};
 
+  // Estado para data selecionada no calendário
   const [dataSelecionada, setDataSelecionada] = useState<Date>(new Date());
+  // Estado para lista de agendamentos
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
+  // Estado para nome do cliente
   const [cliente, setCliente] = useState<string>("");
+  // Estado para horário selecionado
   const [horario, setHorario] = useState<string>("");
+  // Estado para dados de clima
   const [clima, setClima] = useState<DadosClima | null>(null);
+  // Estado para indicar se está carregando clima
   const [carregandoClima, setCarregandoClima] = useState(false);
 
   // ================== PROTEÇÃO DE ROTA ==================
+  // Redireciona para home se não houver cidade informada
   useEffect(() => {
     if (!cidade) navigate("/");
   }, [cidade, navigate]);
 
   // ================== CARREGAR HISTÓRICO ==================
+  // Carrega agendamentos salvos do localStorage para a cidade atual
   useEffect(() => {
     if (!cidade) return;
     
@@ -190,6 +203,7 @@ export function Reservas() {
   }, [cidade]);
 
   // ================== SALVAR ==================
+  // Salva automaticamente os agendamentos no localStorage quando mudam
   useEffect(() => {
     if (!cidade || agendamentos.length === 0) return;
     
@@ -210,6 +224,7 @@ export function Reservas() {
   }, [agendamentos, cidade]);
 
   // ================== CARREGAR CLIMA ==================
+  // Carrega dados de clima para a data selecionada
   useEffect(() => {
     const carregarClima = async () => {
       if (!cidade) {
@@ -227,45 +242,54 @@ export function Reservas() {
     carregarClima();
   }, [dataSelecionada, cidade]);
 
+  // Memoiza a data de hoje para comparações
   const hoje = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
     return d;
   }, []);
 
+  // Formata a data selecionada em string ISO
   const dataFormatada = useMemo(
     () => formatDate(dataSelecionada),
     [dataSelecionada]
   );
 
+  // Filtra agendamentos que são do dia selecionado
   const reservasDoDia = useMemo(
     () => agendamentos.filter((a) => a.data === dataFormatada),
     [agendamentos, dataFormatada]
   );
 
+  // Extrai horários que já estão ocupados no dia
   const horariosOcupados = useMemo(
     () => reservasDoDia.map((r) => r.horario),
     [reservasDoDia]
   );
 
+  // Cria conjunto de datas que possuem pelo menos uma reserva
   const diasComReserva = useMemo(
     () => new Set(agendamentos.map((a) => a.data)),
     [agendamentos]
   );
 
   // ================== CADASTRAR ==================
+  // Cria uma nova reserva após validações
   const cadastrarAgendamento = (): void => {
     try {
+      // Valida se cliente e horário foram preenchidos
       if (!cliente.trim() || !horario) {
         alert("Informe o nome do cliente e o horário.");
         return;
       }
 
+      // Verifica se o horário já está ocupado
       if (horariosOcupados.includes(horario)) {
         alert("Esse horário já está reservado.");
         return;
       }
 
+      // Cria novo agendamento com dados preenchidos
       const novo: Agendamento = {
         id: Date.now(),
         data: dataFormatada,
@@ -274,6 +298,7 @@ export function Reservas() {
         cidade: cidade || "",
       };
 
+      // Adiciona à lista e limpa os campos
       setAgendamentos((prev) => [...prev, novo]);
       setCliente("");
       setHorario("");
@@ -284,6 +309,7 @@ export function Reservas() {
   };
 
   // ================== EXCLUIR ==================
+  // Remove um agendamento pelo ID
   const excluirAgendamento = (id: number): void => {
     try {
       setAgendamentos((prev) => prev.filter((a) => a.id !== id));
@@ -296,25 +322,29 @@ export function Reservas() {
   // ================== RENDER ==================
   return (
     <div className="reservas-page">
+      {/* Cabeçalho com título e cidade */}
       <header className="reservas-header">
         <h1 className="titulo">Agenda da Quadra</h1>
         {cidade && <p className="cidade">{cidade}</p>}
       </header>
 
+      {/* Calendário para seleção de data */}
       <section className="calendar-container">
         <Calendar
           locale="pt-BR"
           view="month"
-          showNavigation={true} // Permite navegar entre meses
+          showNavigation={true}
           showNeighboringMonth={true}
           value={dataSelecionada}
           onChange={(value) => {
             if (value instanceof Date) setDataSelecionada(value);
           }}
           className="calendar"
+          // Formata os dias da semana em português
           formatShortWeekday={(_, date) =>
             ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"][date.getDay()]
           }
+          // Adiciona classes CSS para estilizar dias
           tileClassName={({ date }) => {
             const dia = formatDate(date);
 
@@ -328,7 +358,9 @@ export function Reservas() {
         />
       </section>
 
+      {/* Formulário para criar nova reserva */}
       <section className="form-agendamento">
+        {/* Campo para nome do cliente */}
         <input
           type="text"
           placeholder="Preencha seu nome"
@@ -337,12 +369,14 @@ export function Reservas() {
           className="input-cliente"
         />
 
+        {/* Seletor de horários disponíveis */}
         <select
           value={horario}
           onChange={(e) => setHorario(e.target.value)}
           className="select-horario"
         >
           <option value="">Selecione um horário</option>
+          {/* Lista horários e marca como ocupados */}
           {HORARIOS_DISPONIVEIS.map((h) => (
             <option key={h} value={h} disabled={horariosOcupados.includes(h)}>
               {h} {horariosOcupados.includes(h) ? "(ocupado)" : ""}
@@ -350,12 +384,14 @@ export function Reservas() {
           ))}
         </select>
 
+        {/* Botão para confirmar reserva */}
         <button onClick={cadastrarAgendamento} className="btn-cadastrar">
           Reservar
         </button>
       </section>
 
-      {/* ================== CLIMA ================== */}
+      {/* Seção de clima - mostra previsão do dia selecionado */}
+      {/* Carregamento ou exibição de clima */}
       {carregandoClima ? (
         <section className="clima-container carregando">
           <p>Carregando informações de clima...</p>
@@ -365,6 +401,7 @@ export function Reservas() {
           <div className="clima-header">
             <h3>Previsão para {dataFormatada}</h3>
           </div>
+          {/* Grid com informações de clima */}
           <div className="clima-grid">
             <div className="clima-item">
               <span className="clima-label">Temperatura</span>
@@ -388,6 +425,7 @@ export function Reservas() {
             </div>
           </div>
 
+          {/* Alerta se houver risco de chuva */}
           {clima.probabilidadeChuva > 40 && (
             <div className="alerta-chuva">
               ⚠️ Atenção: Há {clima.probabilidadeChuva}% de probabilidade de chuva neste dia!
@@ -396,13 +434,16 @@ export function Reservas() {
         </section>
       ) : null}
 
+      {/* Lista de reservas do dia selecionado */}
       <section className="lista-agendamentos">
         <h2>Reservas do dia {dataFormatada}</h2>
 
+        {/* Mensagem vazia se não houver reservas */}
         {reservasDoDia.length === 0 ? (
           <p className="empty">Nenhuma reserva para este dia.</p>
         ) : (
           <ul>
+            {/* Lista de reservas com opção de excluir */}
             {reservasDoDia.map((a) => (
               <li key={a.id} className="item-agendamento">
                 <span>
