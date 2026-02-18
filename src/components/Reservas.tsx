@@ -52,8 +52,8 @@ const HORARIOS_DISPONIVEIS: string[] = [
 
 // Chave para armazenar agendamentos no localStorage
 const STORAGE_KEY = "@tenisplay_agendamentos";
-// Chave de API da OpenWeather para obter dados de clima
-const OPENWEATHER_API_KEY = "f473b08efcfe780ec11c9da7abc5fff4";
+// Chave de API da OpenWeather obtida de variável de ambiente
+const OPENWEATHER_API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
 
 // ================== UTILS ==================
 // Converte uma data para formato ISO (yyyy-mm-dd) para comparações
