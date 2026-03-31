@@ -336,7 +336,7 @@ export function Reservas() {
 
   // ================== CLIMA NOS DIAS ==================
   // Função para obter conteúdo de clima para um dia específico
-  const getClimaDia = (date: Date) => {
+  const getClimaDia = (_date: Date) => {
     // Por enquanto, retorna o clima atual para todos os dias
     // Futuramente pode ser expandido para forecast por dia
     if (clima && !carregandoClima) {
@@ -419,7 +419,7 @@ export function Reservas() {
           view="month"
           showNavigation={true}
           showNeighboringMonth={true}
-          navigationLabel={({ date, label, locale, view }) => {
+          navigationLabel={({ date: _date, label, locale: _locale, view: _view }) => {
             return `${label}`;
           }}
           prevLabel="<"
