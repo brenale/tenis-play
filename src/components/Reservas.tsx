@@ -1,5 +1,6 @@
 // Importa estilos CSS
 import "../styles/Reservas.css";
+import "../styles/home.css"; // Importar estilos do header
 // Importa hooks do React para estado, efeitos e memoização
 import { useEffect, useMemo, useState } from "react";
 // Importa funções de navegação e acesso ao estado da rota
@@ -173,6 +174,8 @@ export function Reservas() {
   const [clima, setClima] = useState<DadosClima | null>(null);
   // Estado para indicar se está carregando clima
   const [carregandoClima, setCarregandoClima] = useState(false);
+  // Estado para controlar se o menu hamburger está aberto
+  const [menuAberto, setMenuAberto] = useState<boolean>(false);
 
   // ================== PROTEÇÃO DE ROTA ==================
   // Redireciona para home se não houver cidade informada
@@ -319,9 +322,82 @@ export function Reservas() {
     }
   };
 
+  // ================== MENU ==================
+  // Função para navegar para home através do menu
+  const handleMenuHome = () => {
+    setMenuAberto(false);
+    navigate("/");
+  };
+
+  // Função para fechar menu
+  const fecharMenu = () => {
+    setMenuAberto(false);
+  };
+
+  // ================== CLIMA NOS DIAS ==================
+  // Função para obter conteúdo de clima para um dia específico
+  const getClimaDia = (date: Date) => {
+    // Por enquanto, retorna o clima atual para todos os dias
+    // Futuramente pode ser expandido para forecast por dia
+    if (clima && !carregandoClima) {
+      return {
+        icone: clima.icone,
+        temperatura: clima.temperatura
+      };
+    }
+    return null;
+  };
+
   // ================== RENDER ==================
   return (
     <div className="reservas-page">
+      {/* Header com menu hamburger */}
+      <header className="home-header">
+        <div className="header-content">
+          <button
+            className={`hamburger ${menuAberto ? 'open' : ''}`}
+            onClick={() => setMenuAberto(!menuAberto)}
+            aria-label="Menu"
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+          <h2 className="header-title">Clube de Tênis Reserva dos Vinhedos</h2>
+        </div>
+
+        {/* Menu overlay */}
+        {menuAberto && (
+          <div className="menu-overlay" onClick={fecharMenu}>
+            <nav className="menu-content" onClick={(e) => e.stopPropagation()}>
+              <button className="menu-close" onClick={fecharMenu}>×</button>
+              <ul className="menu-list">
+                <li>
+                  <button onClick={handleMenuHome}>
+                    Home
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => { setMenuAberto(false); alert('Reservas - Você já está aqui'); }}>
+                    Reservas
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => { setMenuAberto(false); alert('Ajuda - Em desenvolvimento'); }}>
+                    Ajuda
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => { setMenuAberto(false); alert('Saindo...'); }}>
+                    Sair
+                  </button>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        )}
+      </header>
+
       {/* Cabeçalho com título e cidade */}
       <header className="reservas-header">
         <h1 className="titulo">Agenda da Quadra</h1>
@@ -330,11 +406,24 @@ export function Reservas() {
 
       {/* Calendário para seleção de data */}
       <section className="calendar-container">
+        {/* Título do mês acima do calendário */}
+        <div className="calendar-title">
+          {dataSelecionada.toLocaleDateString('pt-BR', { 
+            month: 'long', 
+            year: 'numeric' 
+          })}
+        </div>
+        
         <Calendar
           locale="pt-BR"
           view="month"
           showNavigation={true}
           showNeighboringMonth={true}
+          navigationLabel={({ date, label, locale, view }) => {
+            return `${label}`;
+          }}
+          prevLabel="<"
+          nextLabel=">"
           value={dataSelecionada}
           onChange={(value) => {
             if (value instanceof Date) setDataSelecionada(value);
@@ -354,6 +443,25 @@ export function Reservas() {
               return "day-reserved";
 
             return "";
+          }}
+          // Adiciona conteúdo customizado (ícone e temperatura) em cada dia
+          tileContent={({ date, view }) => {
+            if (view === 'month') {
+              const climaDia = getClimaDia(date);
+              if (climaDia) {
+                return (
+                  <div className="day-weather">
+                    <img
+                      src={`https://openweathermap.org/img/wn/${climaDia.icone}.png`}
+                      alt="Condição do tempo"
+                      className="weather-icon"
+                    />
+                    <span className="weather-temp">{climaDia.temperatura}°</span>
+                  </div>
+                );
+              }
+            }
+            return null;
           }}
         />
       </section>
@@ -390,49 +498,7 @@ export function Reservas() {
         </button>
       </section>
 
-      {/* Seção de clima - mostra previsão do dia selecionado */}
-      {/* Carregamento ou exibição de clima */}
-      {carregandoClima ? (
-        <section className="clima-container carregando">
-          <p>Carregando informações de clima...</p>
-        </section>
-      ) : clima ? (
-        <section className="clima-container">
-          <div className="clima-header">
-            <h3>Previsão para {dataFormatada}</h3>
-          </div>
-          {/* Grid com informações de clima */}
-          <div className="clima-grid">
-            <div className="clima-item">
-              <span className="clima-label">Temperatura</span>
-              <span className="clima-valor">{clima.temperatura}°C</span>
-            </div>
-            <div className="clima-item">
-              <span className="clima-label">Condição</span>
-              <span className="clima-valor clima-descricao">{clima.descricao}</span>
-            </div>
-            <div className="clima-item">
-              <span className="clima-label">Probabilidade de Chuva</span>
-              <span className="clima-valor">{clima.probabilidadeChuva}%</span>
-            </div>
-            <div className="clima-item">
-              <span className="clima-label">Umidade</span>
-              <span className="clima-valor">{clima.umidade}%</span>
-            </div>
-            <div className="clima-item">
-              <span className="clima-label">Vento</span>
-              <span className="clima-valor">{clima.velocidadeVento} m/s</span>
-            </div>
-          </div>
-
-          {/* Alerta se houver risco de chuva */}
-          {clima.probabilidadeChuva > 40 && (
-            <div className="alerta-chuva">
-              ⚠️ Atenção: Há {clima.probabilidadeChuva}% de probabilidade de chuva neste dia!
-            </div>
-          )}
-        </section>
-      ) : null}
+      {/* Seção de clima - versão compacta */}
 
       {/* Lista de reservas do dia selecionado */}
       <section className="lista-agendamentos">
